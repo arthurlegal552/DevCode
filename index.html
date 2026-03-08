@@ -1,233 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>CodeShare IDE</title>
 
-<!-- JSZip for ZIP export -->
+<title>Online Coding Workspace</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,Arial;}
-body{height:100vh;display:grid;grid-template-columns:260px 1fr 320px;grid-template-rows:60px 1fr;background:#0d1117;color:#e6edf3;}
-header{grid-column:1/4;display:flex;align-items:center;padding:0 20px;background:#161b22;border-bottom:1px solid #30363d;font-size:20px;font-weight:600;}
-.sidebar{border-right:1px solid #30363d;padding:15px;background:#0d1117;}
-.sidebar h3{font-size:13px;margin-bottom:10px;color:#8b949e;}
-.sidebar input,.sidebar select{width:100%;margin-bottom:10px;padding:7px;background:#161b22;border:1px solid #30363d;color:white;}
-.sidebar button{width:100%;padding:8px;background:#238636;border:none;color:white;cursor:pointer;margin-bottom:8px;}
-.sidebar button:hover{background:#2ea043;}
-#fileTabs button{margin:2px;padding:4px 8px;background:#21262d;border:1px solid #30363d;color:white;cursor:pointer;}
-#fileTabs button.active{background:#238636;}
-.editor{display:flex;flex-direction:column;}
-.toolbar{height:45px;display:flex;align-items:center;gap:10px;padding:0 15px;background:#161b22;border-bottom:1px solid #30363d;}
-.toolbar button{padding:6px 12px;background:#21262d;border:1px solid #30363d;color:white;cursor:pointer;}
-.toolbar button:hover{background:#30363d;}
-#codeArea{flex:1;border:none;outline:none;resize:none;background:#0d1117;color:#e6edf3;padding:20px;font-family:monospace;font-size:14px;}
-.right{border-left:1px solid #30363d;display:flex;flex-direction:column;}
-.section{flex:1;display:flex;flex-direction:column;border-bottom:1px solid #30363d;}
-.section h3{padding:10px;font-size:13px;background:#161b22;border-bottom:1px solid #30363d;}
-.content{flex:1;overflow:auto;padding:10px;font-size:13px;}
-.inputRow{display:flex;border-top:1px solid #30363d;}
-.inputRow input{flex:1;border:none;padding:8px;background:#161b22;color:white;}
-.inputRow button{background:#238636;border:none;padding:8px 12px;color:white;cursor:pointer;}
-.message{margin-bottom:6px;}
-.bug{margin-bottom:6px;color:#ff7b72;}
-#inviteLink{margin-top:5px;font-size:12px;}
+
+body{
+margin:0;
+background:#0d1117;
+color:#e6edf3;
+font-family:Segoe UI;
+display:flex;
+flex-direction:column;
+height:100vh;
+}
+
+header{
+height:55px;
+background:#161b22;
+display:flex;
+align-items:center;
+padding:0 20px;
+font-size:20px;
+border-bottom:1px solid #30363d;
+}
+
+#topbar{
+display:flex;
+gap:10px;
+padding:10px;
+background:#0d1117;
+border-bottom:1px solid #30363d;
+}
+
+button{
+background:#21262d;
+border:1px solid #30363d;
+color:white;
+padding:6px 12px;
+cursor:pointer;
+}
+
+button:hover{
+background:#30363d;
+}
+
+#fileTabs{
+display:flex;
+gap:3px;
+padding:5px;
+background:#161b22;
+border-bottom:1px solid #30363d;
+overflow-x:auto;
+}
+
+.tab{
+padding:6px 10px;
+background:#21262d;
+border:1px solid #30363d;
+cursor:pointer;
+display:flex;
+align-items:center;
+gap:6px;
+}
+
+.tab.active{
+background:#238636;
+}
+
+.tab span{
+cursor:pointer;
+color:#ff7b72;
+}
+
+#editor{
+flex:1;
+}
+
+#codeArea{
+width:100%;
+height:100%;
+background:#0d1117;
+color:#e6edf3;
+border:none;
+outline:none;
+resize:none;
+font-family:monospace;
+font-size:14px;
+padding:20px;
+}
+
 </style>
+
 </head>
 
 <body>
-<header>CodeShare Collaborative IDE</header>
 
-<div class="sidebar">
-<h3>Project File</h3>
-<input id="fileName" placeholder="filename">
-<select id="fileType">
-<option value="html">HTML</option>
-<option value="css">CSS</option>
-<option value="js">JavaScript</option>
-<option value="json">JSON</option>
-<option value="txt">Text</option>
-</select>
-<button onclick="downloadCurrent()">Download File</button>
-<button onclick="downloadProject()">Download Project (.zip)</button>
+<header>
+Collaborative Coding Workspace
+</header>
 
-<h3>Files</h3>
-<div id="fileTabs"></div>
+<div id="topbar">
+
 <button onclick="createFile()">New File</button>
 
-<h3>Invite</h3>
-<button onclick="generateInvite()">Generate Invite Link</button>
-<input id="inviteLink" readonly>
+<button onclick="renameFile()">Rename File</button>
+
+<button onclick="downloadFile()">Download File</button>
+
+<button onclick="downloadProject()">Download Project ZIP</button>
+
 </div>
 
-<div class="editor">
-<div class="toolbar">
-<button onclick="clearCode()">Clear</button>
-<button onclick="updateURL()">Update Link</button>
-</div>
+<div id="fileTabs"></div>
+
+<div id="editor">
+
 <textarea id="codeArea"></textarea>
-</div>
 
-<div class="right">
-<div class="section">
-<h3>Team Chat</h3>
-<div class="content" id="messages"></div>
-<div class="inputRow">
-<input id="msgInput" placeholder="message">
-<button onclick="sendMessage()">Send</button>
-</div>
-</div>
-<div class="section">
-<h3>Bug Reports</h3>
-<div class="content" id="bugs"></div>
-<div class="inputRow">
-<input id="bugInput" placeholder="describe bug">
-<button onclick="reportBug()">Report</button>
-</div>
-</div>
 </div>
 
 <script>
-// -----------------------------
-// Files
-// -----------------------------
-let files = {};
-let currentFile = "";
 
-// -----------------------------
-// Base64 project encode/decode
-// -----------------------------
-function encodeProject(code){return btoa(unescape(encodeURIComponent(code)))}
-function decodeProject(code){return decodeURIComponent(escape(atob(code)))}
+let files={
+"index.html":"<!DOCTYPE html>\n<html>\n<head>\n<title>Project</title>\n</head>\n<body>\n\n</body>\n</html>"
+}
 
-// -----------------------------
-// Tabs
-// -----------------------------
+let currentFile="index.html"
+
+
 function renderTabs(){
-  const tabs=document.getElementById("fileTabs");
-  tabs.innerHTML="";
-  for(let name in files){
-    const tab=document.createElement("button");
-    tab.textContent=name;
-    tab.className=(name===currentFile?"active":"");
-    tab.onclick=()=>openFile(name);
-    tabs.appendChild(tab);
-  }
+
+let container=document.getElementById("fileTabs")
+
+container.innerHTML=""
+
+for(let name in files){
+
+let tab=document.createElement("div")
+
+tab.className="tab"
+
+if(name===currentFile){
+tab.classList.add("active")
 }
 
-// Open file
+tab.onclick=()=>openFile(name)
+
+let label=document.createElement("div")
+label.textContent=name
+
+let close=document.createElement("span")
+close.textContent="×"
+
+close.onclick=(e)=>{
+e.stopPropagation()
+delete files[name]
+
+let keys=Object.keys(files)
+
+currentFile=keys[0]||""
+
+if(currentFile){
+openFile(currentFile)
+}
+
+renderTabs()
+}
+
+tab.appendChild(label)
+tab.appendChild(close)
+
+container.appendChild(tab)
+
+}
+
+}
+
+
 function openFile(name){
-  saveCurrent();
-  currentFile=name;
-  document.getElementById("codeArea").value=files[name];
-  renderTabs();
+
+saveCurrent()
+
+currentFile=name
+
+document.getElementById("codeArea").value=files[name]
+
+renderTabs()
+
 }
 
-// Save current
+
 function saveCurrent(){
-  if(currentFile) files[currentFile]=document.getElementById("codeArea").value;
+
+files[currentFile]=document.getElementById("codeArea").value
+
 }
 
-// Create new file
+
 function createFile(){
-  let name=prompt("File name");
-  if(!name) return;
-  if(files[name]){alert("File exists"); return;}
-  files[name]="";
-  currentFile=name;
-  renderTabs();
-  openFile(name);
+
+let name=prompt("File name")
+
+if(!name) return
+
+if(files[name]){
+alert("File already exists")
+return
 }
 
-// Clear editor
-function clearCode(){document.getElementById("codeArea").value="";saveCurrent();}
+files[name]=""
 
-// -----------------------------
-// Download
-// -----------------------------
-function downloadCurrent(){
-  saveCurrent();
-  const blob=new Blob([files[currentFile]],{type:"text/plain"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=currentFile;
-  a.click();
+currentFile=name
+
+renderTabs()
+
+openFile(name)
+
 }
+
+
+function renameFile(){
+
+let newName=prompt("New file name",currentFile)
+
+if(!newName) return
+
+if(files[newName]){
+alert("File exists")
+return
+}
+
+files[newName]=files[currentFile]
+
+delete files[currentFile]
+
+currentFile=newName
+
+renderTabs()
+
+}
+
+
+function downloadFile(){
+
+saveCurrent()
+
+let blob=new Blob([files[currentFile]],{type:"text/plain"})
+
+let a=document.createElement("a")
+
+a.href=URL.createObjectURL(blob)
+
+a.download=currentFile
+
+a.click()
+
+}
+
 
 async function downloadProject(){
-  saveCurrent();
-  const zip=new JSZip();
-  for(let name in files){zip.file(name,files[name]);}
-  const content=await zip.generateAsync({type:"blob"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(content);
-  a.download="project.zip";
-  a.click();
+
+saveCurrent()
+
+let zip=new JSZip()
+
+for(let name in files){
+
+zip.file(name,files[name])
+
 }
 
-// -----------------------------
-// Invite
-// -----------------------------
-function generateInvite(){
-  saveCurrent();
-  let data={files};
-  let encoded=encodeProject(JSON.stringify(data));
-  let link=location.origin+location.pathname+"?project="+encoded;
-  document.getElementById("inviteLink").value=link;
+let content=await zip.generateAsync({type:"blob"})
+
+let a=document.createElement("a")
+
+a.href=URL.createObjectURL(content)
+
+a.download="project.zip"
+
+a.click()
+
 }
 
-function updateURL(){
-  saveCurrent();
-  let data={files};
-  let encoded=encodeProject(JSON.stringify(data));
-  history.replaceState(null,null,"?project="+encoded);
-}
 
-function loadProject(){
-  const params=new URLSearchParams(location.search);
-  const proj=params.get("project");
-  if(proj){
-    try{
-      const decoded=decodeProject(proj);
-      const obj=JSON.parse(decoded);
-      files=obj.files;
-      currentFile=Object.keys(files)[0]||"";
-    }catch{}
-  }else{
-    // default
-    files["index.html"]="<!DOCTYPE html>\n<html>\n<head>\n<title>Project</title>\n</head>\n<body>\n\n</body>\n</html>";
-    currentFile="index.html";
-  }
-  renderTabs();
-  openFile(currentFile);
-}
+document.getElementById("codeArea").addEventListener("input",saveCurrent)
 
-// -----------------------------
-// Chat & Bug
-// -----------------------------
-function sendMessage(){
-  let input=document.getElementById("msgInput");
-  if(!input.value) return;
-  let div=document.createElement("div"); div.className="message"; div.textContent="User: "+input.value;
-  document.getElementById("messages").appendChild(div);
-  input.value="";
-}
-function reportBug(){
-  let input=document.getElementById("bugInput");
-  if(!input.value) return;
-  let div=document.createElement("div"); div.className="bug"; div.textContent="Bug: "+input.value;
-  document.getElementById("bugs").appendChild(div);
-  input.value="";
-}
 
-// -----------------------------
-// Init
-// -----------------------------
-window.onload=loadProject;
-document.getElementById("codeArea").addEventListener("input",()=>saveCurrent());
+window.onload=()=>{
+
+renderTabs()
+
+openFile("index.html")
+
+}
 
 </script>
+
 </body>
 </html>
